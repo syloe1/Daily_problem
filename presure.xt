@@ -1,0 +1,132 @@
+hey -n 10000 -c 1000 -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdGFmZl9pZCI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzU3ODQxNzQ5LCJpYXQiOjE3NTc3NTUzNDl9.0xzR0bh6oaaSZuTQBOdO38XXBeWuwrE7XMlie7omZQ0" http://localhost:8888/api/ping
+
+
+
+多端口测试
+hey -n 10000 -c 1000 -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdGFmZl9pZCI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzU3ODQxNzQ5LCJpYXQiOjE3NTc3NTUzNDl9.0xzR0bh6oaaSZuTQBOdO38XXBeWuwrE7XMlie7omZQ0" http://localhost/api/ping
+
+
+2️⃣ 多端口压力测试 + Nginx
+
+你的目的是测试 Nginx 负载均衡能力，做法如下：
+
+确认 Nginx upstream 配置：
+
+upstream gin_backend {
+    server 127.0.0.1:8888;
+    server 127.0.0.1:8889;
+    ...
+    server 127.0.0.1:8897;
+}
+
+server {
+    listen 80;
+    server_name localhost;
+
+    location / {
+        proxy_pass http://gin_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
+
+重载 Nginx 配置：
+
+sudo nginx -s reload
+
+
+压力测试只打到 Nginx 的 80 端口，例如：
+
+hey -n 10000 -c 1000 -H "Authorization: Bearer <token>" http://localhost/api/ping
+
+
+Nginx 会自动将请求分发到 8888~8897 端口的 10 个后端实例
+
+这样就是真正的负载均衡测试
+
+
+ ./start_all.sh 
+关闭旧实例...
+关闭端口 8888 的进程 PID=41555
+关闭端口 8889 的进程 PID=41556
+关闭端口 8890 的进程 PID=41557
+关闭端口 8891 的进程 PID=41558
+关闭端口 8892 的进程 PID=41559
+关闭端口 8893 的进程 PID=41560
+关闭端口 8894 的进程 PID=41561
+关闭端口 8895 的进程 PID=41562
+关闭端口 8896 的进程 PID=41563
+关闭端口 8897 的进程 PID=41564
+编译 Go 程序...
+启动 10 个后端实例...
+启动端口 8888 ...
+启动端口 8889 ...
+启动端口 8890 ...
+启动端口 8891 ...
+启动端口 8892 ...
+启动端口 8893 ...
+启动端口 8894 ...
+启动端口 8895 ...
+启动端口 8896 ...
+启动端口 8897 ...
+生成 Nginx 配置...
+重载 Nginx 配置...
+2025/09/13 17:28:09 [notice] 42254#42254: signal process started
+启动完成！后端服务已运行，Nginx 已重载。
+
+用hey对nginx做压力测试，看看10000个并发，能不能抗住
+
+
+hey -n 10000 -c 1000 \
+-H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdGFmZl9pZCI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzU3ODQxNzQ5LCJpYXQiOjE3NTc3NTUzNDl9.0xzR0bh6oaaSZuTQBOdO38XXBeWuwrE7XMlie7omZQ0" \
+http://localhost/api/ping
+
+
+
+hey -n 10000 -c 10000 -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdGFmZl9pZCI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzU3ODQxNzQ5LCJpYXQiOjE3NTc3NTUzNDl9.0xzR0bh6oaaSZuTQBOdO38XXBeWuwrE7XMlie7omZQ0" http://localhost:8888/api/ping
+
+
+Summary:
+  Total:        0.9285 secs
+  Slowest:      0.8516 secs
+  Fastest:      0.0789 secs
+  Average:      0.6477 secs
+  Requests/sec: 10769.6396
+  
+  Total data:   180000 bytes
+  Size/request: 18 bytes
+
+Response time histogram:
+  0.079 [1]     |
+  0.156 [3]     |
+  0.233 [105]   |■
+  0.311 [119]   |■
+  0.388 [239]   |■■
+  0.465 [272]   |■■■
+  0.543 [454]   |■■■■
+  0.620 [1286]  |■■■■■■■■■■■■■
+  0.697 [4040]  |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.774 [3279]  |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.852 [202]   |■■
+
+
+Latency distribution:
+  10% in 0.5292 secs
+  25% in 0.6203 secs
+  50% in 0.6731 secs
+  75% in 0.7121 secs
+  90% in 0.7481 secs
+  95% in 0.7620 secs
+  99% in 0.7802 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:   0.1060 secs, 0.0789 secs, 0.8516 secs
+  DNS-lookup:   0.0700 secs, 0.0000 secs, 0.4088 secs
+  req write:    0.0176 secs, 0.0000 secs, 0.3542 secs
+  resp wait:    0.1510 secs, 0.0001 secs, 0.3409 secs
+  resp read:    0.0498 secs, 0.0000 secs, 0.5112 secs
+
+Status code distribution:
+  [200] 10000 responses
