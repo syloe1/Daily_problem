@@ -1,0 +1,35 @@
+.h和.cpp分开写， 声明与实现分离。
+目的是避免重复编译：如果多个文件引用同一个类，只需包含 .h 即可，无需重复编译实现代码，提高编译效率。 为什么实现时需要 类名::方法名？
+这是 C++ 中作用域限定符的用法，用于明确指定方法属于哪个类。例如 MemoryPool::allocate() 表示 allocate() 是 MemoryPool 类的成员方法。
+原因：
+多个类可能有同名方法（比如 A::func() 和 B::func()），用 类名:: 可以区分。
+在 .cpp 中实现类的方法时，必须用 类名:: 告诉编译器该方法属于哪个类。3. namespace 是什么？如何使用？
+namespace（命名空间）用于隔离同名的类、函数或变量，避免命名冲突。例如代码中的 namespace memoryPool { ... }，把所有相关的类（MemoryPool、HashBucket）都放在这个命名空间里。
+使用方式：
+直接指定命名空间：
+memoryPool::MemoryPool pool;  // 访问命名空间内的类
+memoryPool::HashBucket::useMemory(100);  // 访问命名空间内的类的静态方法
+使用 using 简化：
+using namespace memoryPool;  // 引入整个命名空间，之后可直接写类名
+MemoryPool pool;
+HashBucket::useMemory(100);隐藏实现细节：使用者只需看 .h 就知道如何调用，无需关心内部实现。
+锁（std::mutex）的作用
+代码中 std::mutex mutexForFreeList_ 和 std::mutex mutexForBlock_ 是互斥锁，用于多线程安全：
+当多个线程同时调用 allocate() 或 deallocate() 时，可能同时操作 freeList_ 或内存块，导致数据混乱（比如链表指针错乱）。
+std::lock_guard<std::mutex> lock(mutex) 会在作用域内锁定互斥锁，确保同一时间只有一个线程能修改共享资源（如 freeList_），离开作用域时自动解锁，避免死锁。
+
+返回引用时用 . 访问成员，返回指针时用 -> 访问成员
+
+reinterpret_cast 是危险的转换，它不保证类型安全，仅用于底层内存操作（如内存池、序列化等场景
+
+
+ 友元声明的必要性：访问类的私有成员（潜在需求）
+友元函数的核心作用是允许外部函数访问类的私有成员。虽然在当前代码中，newElement 和 deleteElement 仅调用了 HashBucket 的 public 静态成员函数（useMemory 和 freeMemory），看似不需要友元权限，但可能存在以下潜在原因：
+扩展性考虑：如果未来需要在这两个函数中访问 HashBucket 的私有成员（例如私有静态变量或工具函数），友元声明可以提前预留访问权限，避免后续修改接口。
+设计一致性：这两个函数是 HashBucket 内存管理机制的 “配套工具”，与类的逻辑紧密绑定，声明为友元可以明确它们与类的关联关系。
+2. 类外实现的原因：模板函数的特性要求
+这两个函数是模板函数（template<typename T, ...>），而模板的完整定义（声明 + 实现）通常需要放在同一个编译单元中（如头文件），否则会导致链接错误。
+
+
+
+reinterpret_cast 是 C++ 中的一种强制类型转换运算符，用于底层的指针 / 引用类型转换，
