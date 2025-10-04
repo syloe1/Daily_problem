@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmemory_pool.a CMakeFiles/memory_pool.dir/MemoryPool.cpp.o CMakeFiles/memory_pool.dir/CentralCache.cpp.o CMakeFiles/memory_pool.dir/PageCache.cpp.o CMakeFiles/memory_pool.dir/ThreadCache.cpp.o
+/usr/bin/ranlib libmemory_pool.a

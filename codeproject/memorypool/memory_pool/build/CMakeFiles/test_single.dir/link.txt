@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall -Wextra -pthread CMakeFiles/test_single.dir/test_single.cpp.o -o test_single  libmemory_pool.a -lpthread 
